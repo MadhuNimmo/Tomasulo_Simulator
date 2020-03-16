@@ -63,8 +63,6 @@ def initial_setup():
 		if len(bnez_inst)>0:				
 			for i in range(0,3):
         			lines.extend(bnez_inst)
-	#print(lines)
-
 
 	#Reservation sation setup
 	for res in res_cnt:
@@ -152,8 +150,8 @@ def issue_inst(count,inst,clock):
 	return
 
 def exec_inst(count,inst,clock,inst_typ):
-        global exec_stn,status_q
-	exec_stn[count, inst]["exec"] = clock#True
+        global exec_stn
+	exec_stn[count, inst]["exec"] = clock
 	return 	
 
 def mem_inst(count,inst,clock,inst_typ):
@@ -201,7 +199,6 @@ def main():
 
 def tomasulo_sim():
 	global exec_stn, counter, inst_list,done_counter,status_q
-
 	clock = 0
 	cnt_inst = 1
 	
@@ -211,7 +208,7 @@ def tomasulo_sim():
 		for count in range(1, cnt_inst):
 
 			inst = inst_list[count] 
-			#print(inst)
+			
 			if(exec_stn[count, inst]["done"] == 1):
 				continue
 			inst_typ, des_reg, src_reg1, src_reg2 = parse_inst(inst)
@@ -226,8 +223,6 @@ def tomasulo_sim():
 			
 			not_ready_conflict = None
 			dep = None
-			if inst=="SUB r2 r3 r4":
-        				print(parse_inst(inst),avail_res,exec_stn[count, inst]["issue"],avail_res == None)
         		if( (inst_typ in ["LD","SD"] and  exec_stn[count, inst]["mem"] == None ) or ( inst_typ not in ["LD","SD"] and exec_stn[count, inst]["exec"] == None) ):
         
 				not_ready_conflict, dep = data_dependencies(inst, count, des_reg, src_reg1, src_reg2, inst_history)
@@ -273,7 +268,8 @@ def tomasulo_sim():
 					issue_inst(count, inst,clock)					
 			
 	
-			if(inst_typ in ["ADD","SUB"]):			
+			if(inst_typ in ["ADD","SUB"]):	
+
 				##Mem
 				if(exec_stn[count, inst]["exec"] and clock - exec_stn[count, inst]["exec"] == cyc_add ):
 					mem_inst(count, inst,clock,"ADD")	
@@ -281,9 +277,9 @@ def tomasulo_sim():
 					free_res.append([count,inst_typ,inst])
 					
 				##Exec
-				elif(exec_stn[count, inst]["issue"]  and not_ready_conflict == None and clock>=status_q["ADD"]):
+				elif(exec_stn[count, inst]["issue"]  and not_ready_conflict == None and clock>=status_q["ADD"] ):
 					exec_inst(count,inst,clock,"ADD")
-					status_q[inst_typ]=clock+cyc_add
+					status_q["ADD"]=clock+cyc_add
 
 				##Issue 
 				elif(exec_stn[count, inst]["issue"] == None):
@@ -299,7 +295,7 @@ def tomasulo_sim():
 				##Exec
 				elif(exec_stn[count, inst]["issue"] and not_ready_conflict == None and clock>=status_q["MUL"]):
 					exec_inst(count, inst,clock,"MUL")
-					status_q[inst_typ]=clock+cyc_mul	
+					status_q["MUL"]=clock+cyc_mul
 				##Issue 
 				elif(exec_stn[count, inst]["issue"] == None):
 					issue_inst(count, inst,clock)										
