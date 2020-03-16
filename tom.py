@@ -10,7 +10,7 @@ cyc_mul  = 20
 #Reservation stations
 global rsrvtn_stn, res_cnt,rs_init,status_q
 rsrvtn_stn = {}
-res_cnt={'LD': 3, 'SD': 3, 'ADD': 3, 'MUL': 3, 'BNEZ': 3}
+res_cnt={'LD': 5, 'SD': 5, 'ADD': 3, 'MUL': 3, 'BNEZ': 2}
 rs_init={'inst': None, 'count': None, 'src1': None, 'src2': None, 'dest': None}
 status_q={"ADD":False,"MUL":False,"LD":False,"SD":False,"BNEZ":False}
 
@@ -20,7 +20,7 @@ exec_stn={}
 counter= 1
 done_counter=1
 inst_list = {}
-BRANCH_PREDICTION="NT"
+BRANCH_PREDICTION="T"
 
 #Other variables
 global inst_history,instruction_file,lines
@@ -58,7 +58,7 @@ def initial_setup():
         		if lines[i].startswith("BNEZ"):
         			bnez_inst=lines[i]
 				bnez_inst=[]
-				for j in range(i+1,len(lines)):
+				for j in range(0,i+1):
         					bnez_inst.append(lines[j])
         					
 		for i in range(0,3):
@@ -153,8 +153,7 @@ def issue_inst(count,inst,clock):
 
 def exec_inst(count,inst,clock,inst_typ):
         global exec_stn,status_q
-	exec_stn[count, inst]["exec"] = clock
-	status_q[inst_typ]=True
+	exec_stn[count, inst]["exec"] = clock#True
 	return 	
 
 def mem_inst(count,inst,clock,inst_typ):
@@ -209,11 +208,17 @@ def tomasulo_sim():
 	while(1):
 		not_ready = 0
 		free_res=[]
-
+		iss_list=[]
+		'''print("start")
+		for i in range(0,3):
+			print(rsrvtn_stn['ADD',i])
+		print("end")'''
 		for count in range(1, cnt_inst):
 
-			inst = inst_list[count]
-			
+			inst = inst_list[count] #iss_list
+			#print(status_q["ADD"])
+			#if inst=="ADD r9, r8, r7":
+        				#print("wtf")
 			if(exec_stn[count, inst]["done"] == 1):
 				continue
 			inst_typ, des_reg, src_reg1, src_reg2 = parse_inst(inst)
@@ -228,7 +233,8 @@ def tomasulo_sim():
 			
 			not_ready_conflict = None
 			dep = None
-			
+			#if inst=="ADD r9, r8, r7":
+        				#print(parse_inst(inst),avail_res,exec_stn[count, inst]["issue"],avail_res == None)
         		if( (inst_typ in ["LD","SD"] and  exec_stn[count, inst]["mem"] == None ) or ( inst_typ not in ["LD","SD"] and exec_stn[count, inst]["exec"] == None) ):
         
 				not_ready_conflict, dep = data_dependencies(inst, count, des_reg, src_reg1, src_reg2, inst_history)
@@ -275,16 +281,16 @@ def tomasulo_sim():
 			
 	
 			if(inst_typ in ["ADD","SUB"]):			
-				 
 				##Mem
 				if(exec_stn[count, inst]["exec"] and clock - exec_stn[count, inst]["exec"] == cyc_add ):
 					mem_inst(count, inst,clock,"ADD")	
 					done_counter+=1		
 					free_res.append([count,inst_typ,inst])
-					status_q["ADD"]=False
+					
 				##Exec
-				elif(exec_stn[count, inst]["issue"]  and not_ready_conflict == None and status_q["ADD"]==False):
+				elif(exec_stn[count, inst]["issue"]  and not_ready_conflict == None and clock>=status_q["ADD"]):
 					exec_inst(count,inst,clock,"ADD")
+					status_q[inst_typ]=clock+cyc_add
 
 				##Issue 
 				elif(exec_stn[count, inst]["issue"] == None):
@@ -297,10 +303,10 @@ def tomasulo_sim():
 					mem_inst(count, inst,clock,"MUL")
 					done_counter+=1	
 					free_res.append([count,inst_typ,inst])
-					status_q["MUL"]=False
 				##Exec
-				elif(exec_stn[count, inst]["issue"] and not_ready_conflict == None and status_q["MUL"]==False):
-					exec_inst(count, inst,clock,"MUL")	
+				elif(exec_stn[count, inst]["issue"] and not_ready_conflict == None and clock>=status_q["MUL"]):
+					exec_inst(count, inst,clock,"MUL")
+					status_q[inst_typ]=clock+cyc_mul	
 				##Issue 
 				elif(exec_stn[count, inst]["issue"] == None):
 					issue_inst(count, inst,clock)										
@@ -317,7 +323,7 @@ def tomasulo_sim():
 					status_q["BNEZ"]=True
 				## Issue 
 				if(exec_stn[count, inst]["issue"] == None):
-					issue_inst(count, inst,clock)				
+					issue_inst(count, inst,clock)			
 		clock += 1
 
 		if(free_res):
@@ -365,7 +371,6 @@ def data_dependencies(inst, count, des_reg, src_reg1, src_reg2, inst_history):
 			
 		inst_typ,ref_des_reg, ref_src_reg1, ref_src_reg2  = parse_inst(inst_history[ref_inst])
 		if( int(count) > int(ref_inst) and ((ref_des_reg == src_reg1 or ref_des_reg == src_reg2 and inst_typ!="BNEZ") or (inst_typ=="BNEZ" and BRANCH_PREDICTION=="T"))):
-
 			busy = 1
 			dep  = inst_history[ref_inst]
 	return ([busy, dep])
