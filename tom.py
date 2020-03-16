@@ -20,7 +20,7 @@ exec_stn={}
 counter= 1
 done_counter=1
 inst_list = {}
-BRANCH_PREDICTION="T"
+BRANCH_PREDICTION="NT"
 
 #Other variables
 global inst_history,instruction_file,lines
@@ -54,15 +54,15 @@ def initial_setup():
 	global lines
 	
 	if(BRANCH_PREDICTION == "T"):
+        	bnez_inst=[]
                 for i in range(0,len(lines)):
         		if lines[i].startswith("BNEZ"):
-        			bnez_inst=lines[i]
-				bnez_inst=[]
 				for j in range(0,i+1):
         					bnez_inst.append(lines[j])
-        					
-		for i in range(0,3):
-        		lines.extend(bnez_inst)
+
+		if len(bnez_inst)>0:				
+			for i in range(0,3):
+        			lines.extend(bnez_inst)
 	#print(lines)
 
 
@@ -208,17 +208,10 @@ def tomasulo_sim():
 	while(1):
 		not_ready = 0
 		free_res=[]
-		iss_list=[]
-		'''print("start")
-		for i in range(0,3):
-			print(rsrvtn_stn['ADD',i])
-		print("end")'''
 		for count in range(1, cnt_inst):
 
-			inst = inst_list[count] #iss_list
-			#print(status_q["ADD"])
-			#if inst=="ADD r9, r8, r7":
-        				#print("wtf")
+			inst = inst_list[count] 
+			#print(inst)
 			if(exec_stn[count, inst]["done"] == 1):
 				continue
 			inst_typ, des_reg, src_reg1, src_reg2 = parse_inst(inst)
@@ -233,8 +226,8 @@ def tomasulo_sim():
 			
 			not_ready_conflict = None
 			dep = None
-			#if inst=="ADD r9, r8, r7":
-        				#print(parse_inst(inst),avail_res,exec_stn[count, inst]["issue"],avail_res == None)
+			if inst=="SUB r2 r3 r4":
+        				print(parse_inst(inst),avail_res,exec_stn[count, inst]["issue"],avail_res == None)
         		if( (inst_typ in ["LD","SD"] and  exec_stn[count, inst]["mem"] == None ) or ( inst_typ not in ["LD","SD"] and exec_stn[count, inst]["exec"] == None) ):
         
 				not_ready_conflict, dep = data_dependencies(inst, count, des_reg, src_reg1, src_reg2, inst_history)
