@@ -15,11 +15,12 @@ rs_init={'inst': None, 'count': None, 'src1': None, 'src2': None, 'dest': None}
 status_q={"ADD":False,"MUL":False,"LD":False,"SD":False,"BNEZ":False}
 
 ##Execution unit and trackers
-global counter, inst_list, exec_stn,done_counter
+global counter, inst_list, exec_stn,done_counter,BRANCH_PREDICTION
 exec_stn={}
 counter= 1
 done_counter=1
 inst_list = {}
+BRANCH_PREDICTION="NT"
 
 #Other variables
 global inst_history,instruction_file,lines
@@ -46,12 +47,25 @@ def read_inp(input):
     fp = open(input,'r')
     lines = fp.read().splitlines()
     fp.close()
-
+		
 
 def initial_setup():
         global rsrvtn_stn,counter,exec_stn,rs_init
 	global lines
 	
+	if(BRANCH_PREDICTION == "T"):
+                for i in range(0,len(lines)):
+        		if lines[i].startswith("BNEZ"):
+        			bnez_inst=lines[i]
+				bnez_inst=[]
+				for j in range(i+1,len(lines)):
+        					bnez_inst.append(lines[j])
+        					
+		for i in range(0,3):
+        		lines.extend(bnez_inst)
+	#print(lines)
+
+
 	#Reservation sation setup
 	for res in res_cnt:
 		for i in range(0, res_cnt[res]):
@@ -63,6 +77,7 @@ def initial_setup():
 		exec_stn[counter,inst]={'done': None, 'issue': None, 'exec': None, 'mem': None, 'wb': None, 'commit': None}
 		inst_list[counter] =  inst	
 		counter += 1
+
 
 def check_free_resource(inst_typ,inst, count, des_reg, src_reg1, src_reg2):
         #Checking for free resources
@@ -341,6 +356,7 @@ def tomasulo_sim():
 				break
 
 def data_dependencies(inst, count, des_reg, src_reg1, src_reg2, inst_history):
+        global BRANCH_PREDICTION
 	busy = None
 	dep = None
 	for ref_inst in inst_history:
@@ -348,10 +364,10 @@ def data_dependencies(inst, count, des_reg, src_reg1, src_reg2, inst_history):
 			continue
 			
 		inst_typ,ref_des_reg, ref_src_reg1, ref_src_reg2  = parse_inst(inst_history[ref_inst])
-		if( int(count) > int(ref_inst) and ((ref_des_reg == src_reg1 or ref_des_reg == src_reg2) or inst_typ=="BNEZ")):
+		if( int(count) > int(ref_inst) and ((ref_des_reg == src_reg1 or ref_des_reg == src_reg2 and inst_typ!="BNEZ") or (inst_typ=="BNEZ" and BRANCH_PREDICTION=="T"))):
+
 			busy = 1
 			dep  = inst_history[ref_inst]
-
 	return ([busy, dep])
 
 main()  
