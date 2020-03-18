@@ -10,17 +10,17 @@ cyc_mul  = 20
 #Reservation stations
 global rsrvtn_stn, res_cnt,rs_init,status_q
 rsrvtn_stn = {}
-res_cnt={'LD': 5, 'SD': 5, 'ADD': 3, 'MUL': 3, 'BNEZ': 2}
+res_cnt={'LD': 3, 'SD': 3, 'ADD': 3, 'MUL': 3, 'BNEZ': 3}
 rs_init={'inst': None, 'count': None, 'src1': None, 'src2': None, 'dest': None}
 status_q={"ADD":False,"MUL":False,"LD":False,"SD":False,"BNEZ":False}
 
 ##Execution unit and trackers
-global counter, inst_list, exec_stn,done_counter,BRANCH_PREDICTION
+global counter, inst_list, exec_stn,done_counter,brnch_pred
 exec_stn={}
 counter= 1
 done_counter=1
 inst_list = {}
-BRANCH_PREDICTION="NT"
+brnch_pred="T"
 
 #Other variables
 global inst_history,instruction_file,lines
@@ -53,7 +53,7 @@ def initial_setup():
         global rsrvtn_stn,counter,exec_stn,rs_init
 	global lines
 	
-	if(BRANCH_PREDICTION == "T"):
+	if(brnch_pred == "T"):
         	bnez_inst=[]
                 for i in range(0,len(lines)):
         		if lines[i].startswith("BNEZ"):
@@ -150,8 +150,10 @@ def issue_inst(count,inst,clock):
 	return
 
 def exec_inst(count,inst,clock,inst_typ):
-        global exec_stn
+        global exec_stn,status_q
 	exec_stn[count, inst]["exec"] = clock
+	if inst_typ in["LD","SD"]:
+        	status_q[inst_typ] == True
 	return 	
 
 def mem_inst(count,inst,clock,inst_typ):
@@ -238,13 +240,14 @@ def tomasulo_sim():
 					free_res.append([count,inst_typ,inst])
 					
 				##Mem
-				elif(exec_stn[count, inst]["exec"] ):
+				elif(exec_stn[count, inst]["exec"] and not_ready_conflict == None):
 					exec_stn[count, inst]["mem"] = clock
 					status_q["LD"]=False
 			
 				##Exec
 				elif(exec_stn[count, inst]["issue"] and status_q["BNEZ"]==False and status_q["LD"] == False and not_ready_conflict == None): 
 					exec_inst(count,inst,clock,inst_typ)
+					#status_q["LD"] == True
 
 				##Issue 
 				elif(exec_stn[count, inst]["issue"] == None):
@@ -262,6 +265,7 @@ def tomasulo_sim():
 				##Exec
 				elif(exec_stn[count, inst]["issue"] and status_q["BNEZ"]==False and status_q["SD"]==False and not_ready_conflict == None):
 					exec_inst(count,inst,clock,"SD")
+					#status_q["SD"] == True
 			
 				##Issue 
 				elif(exec_stn[count, inst]["issue"] == None):
@@ -351,7 +355,7 @@ def tomasulo_sim():
 				break
 
 def data_dependencies(inst, count, des_reg, src_reg1, src_reg2, inst_history):
-        global BRANCH_PREDICTION
+        global brnch_pred
 	busy = None
 	dep = None
 	for ref_inst in inst_history:
@@ -359,7 +363,7 @@ def data_dependencies(inst, count, des_reg, src_reg1, src_reg2, inst_history):
 			continue
 			
 		inst_typ,ref_des_reg, ref_src_reg1, ref_src_reg2  = parse_inst(inst_history[ref_inst])
-		if( int(count) > int(ref_inst) and ((ref_des_reg == src_reg1 or ref_des_reg == src_reg2 and inst_typ!="BNEZ") or (inst_typ=="BNEZ" and BRANCH_PREDICTION=="T"))):
+		if( int(count) > int(ref_inst) and ((ref_des_reg == src_reg1 or ref_des_reg == src_reg2 and inst_typ!="BNEZ") or (inst_typ=="BNEZ" and brnch_pred=="T"))):
 			busy = 1
 			dep  = inst_history[ref_inst]
 	return ([busy, dep])
