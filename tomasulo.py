@@ -20,7 +20,6 @@ exec_stn={}
 counter= 1
 done_counter=1
 inst_list = {}
-brnch_pred="T"
 
 #Other variables
 global inst_history,instruction_file,lines
@@ -30,7 +29,7 @@ instruction_file=""
 
 def parse_input():
     #Parsing input
-    global lines,instruction_file
+    global lines,instruction_file,brnch_pred
     no_of_inp= len(sys.argv)
     if no_of_inp < 2:
         print("Input Instruction File missing")
@@ -38,6 +37,8 @@ def parse_input():
     elif no_of_inp > 3:
         print("Too many inputs")
         print("Inputs expected: {filename for instruction set}")
+    elif no_of_inp == 2:
+        print("Branch Prediction Input Missing")
     else:
     	instruction_file=sys.argv[1]
 	brnch_pred=sys.argv[2]
