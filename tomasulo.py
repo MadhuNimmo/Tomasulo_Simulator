@@ -35,11 +35,12 @@ def parse_input():
     if no_of_inp < 2:
         print("Input Instruction File missing")
         exit(1)
-    elif no_of_inp > 2:
+    elif no_of_inp > 3:
         print("Too many inputs")
         print("Inputs expected: {filename for instruction set}")
     else:
     	instruction_file=sys.argv[1]
+	brnch_pred=sys.argv[2]
 
 def read_inp(input):
     #Reading instruction set
@@ -152,8 +153,6 @@ def issue_inst(count,inst,clock):
 def exec_inst(count,inst,clock,inst_typ):
         global exec_stn,status_q
 	exec_stn[count, inst]["exec"] = clock
-	if inst_typ in["LD","SD"]:
-        	status_q[inst_typ] == True
 	return 	
 
 def mem_inst(count,inst,clock,inst_typ):
@@ -247,7 +246,7 @@ def tomasulo_sim():
 				##Exec
 				elif(exec_stn[count, inst]["issue"] and status_q["BNEZ"]==False and status_q["LD"] == False and not_ready_conflict == None): 
 					exec_inst(count,inst,clock,inst_typ)
-					#status_q["LD"] == True
+					status_q["LD"] = True
 
 				##Issue 
 				elif(exec_stn[count, inst]["issue"] == None):
@@ -265,7 +264,7 @@ def tomasulo_sim():
 				##Exec
 				elif(exec_stn[count, inst]["issue"] and status_q["BNEZ"]==False and status_q["SD"]==False and not_ready_conflict == None):
 					exec_inst(count,inst,clock,"SD")
-					#status_q["SD"] == True
+					status_q["SD"] = True
 			
 				##Issue 
 				elif(exec_stn[count, inst]["issue"] == None):
